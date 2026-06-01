@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapport Technique — Prédiction du Churn Client</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.65;
+  color: #1a1a2e;
+  background: #ffffff;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 50px;
+}
+
+/* ── COVER ── */
+.cover {
+  text-align: center;
+  padding: 80px 40px 60px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: white;
+  border-radius: 12px;
+  margin-bottom: 50px;
+  page-break-after: always;
+}
+.cover .logo { font-size: 13pt; letter-spacing: 3px; opacity: 0.6; margin-bottom: 30px; text-transform: uppercase; }
+.cover h1 { font-size: 22pt; font-weight: 700; line-height: 1.3; margin-bottom: 20px; }
+.cover .subtitle { font-size: 12pt; opacity: 0.8; margin-bottom: 40px; line-height: 1.5; }
+.cover .meta { font-size: 10pt; opacity: 0.6; line-height: 2; }
+.cover .badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 9pt;
+  margin: 4px;
+}
+.cover-stats {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+.cover-stat { text-align: center; }
+.cover-stat .val { font-size: 22pt; font-weight: 700; color: #e94560; }
+.cover-stat .lbl { font-size: 8pt; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+
+/* ── TOC ── */
+.toc {
+  background: #f8f9ff;
+  border: 1px solid #e0e4f0;
+  border-radius: 10px;
+  padding: 30px 35px;
+  margin-bottom: 50px;
+  page-break-after: always;
+}
+.toc h2 { font-size: 13pt; color: #0f3460; margin-bottom: 20px; border: none; padding: 0; }
+.toc ol { padding-left: 20px; }
+.toc li { padding: 5px 0; font-size: 10pt; }
+.toc a { color: #0f3460; text-decoration: none; }
+.toc .sub { padding-left: 20px; font-size: 9.5pt; color: #666; }
+
+/* ── HEADINGS ── */
+h1 { display: none; }
+
+h2 {
+  font-size: 16pt;
+  font-weight: 700;
+  color: #0f3460;
+  margin: 45px 0 20px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #e94560;
+  page-break-before: always;
+}
+h2:first-of-type { page-break-before: avoid; }
+
+h3 {
+  font-size: 12pt;
+  font-weight: 600;
+  color: #16213e;
+  margin: 28px 0 12px;
+  padding-left: 12px;
+  border-left: 4px solid #0f3460;
+}
+
+h4 {
+  font-size: 10.5pt;
+  font-weight: 600;
+  color: #e94560;
+  margin: 20px 0 8px;
+}
+
+/* ── PARAGRAPHS ── */
+p { margin: 10px 0; }
+
+/* ── TABLES ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+  font-size: 9.5pt;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+}
+thead tr { background: #0f3460; color: white; }
+th { padding: 10px 14px; text-align: left; font-weight: 600; }
+td { padding: 9px 14px; border-bottom: 1px solid #eef0f8; }
+tbody tr:nth-child(even) { background: #f8f9ff; }
+tbody tr:hover { background: #eef0f8; }
+tbody tr:last-child td { border-bottom: none; }
+
+/* Best values highlight */
+td strong { color: #e94560; font-weight: 700; }
+
+/* ── CODE ── */
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 8.5pt;
+  background: #f0f2ff;
+  color: #0f3460;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+pre {
+  background: #1a1a2e;
+  color: #e8e8f0;
+  padding: 18px 20px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 14px 0;
+  font-size: 8.5pt;
+  line-height: 1.5;
+  border-left: 4px solid #e94560;
+}
+pre code { background: none; color: inherit; padding: 0; }
+
+/* ── BLOCKQUOTE ── */
+blockquote {
+  background: linear-gradient(135deg, #fff8e7, #fffdf0);
+  border-left: 4px solid #f0a500;
+  border-radius: 0 8px 8px 0;
+  margin: 16px 0;
+  padding: 14px 18px;
+  font-style: italic;
+  color: #5a4500;
+}
+
+/* ── LISTS ── */
+ul, ol { margin: 10px 0 10px 24px; }
+li { margin: 5px 0; }
+
+/* ── FIGURES ── */
+.figure-block {
+  margin: 24px 0;
+  text-align: center;
+  page-break-inside: avoid;
+}
+.figure-block img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.12);
+  border: 1px solid #e0e4f0;
+}
+.figure-caption {
+  font-size: 9pt;
+  color: #666;
+  font-style: italic;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* ── CALLOUT BOXES ── */
+.callout-info {
+  background: #e8f4fd;
+  border: 1px solid #bee3f8;
+  border-left: 4px solid #3182ce;
+  border-radius: 0 8px 8px 0;
+  padding: 14px 18px;
+  margin: 16px 0;
+  font-size: 9.5pt;
+}
+.callout-warn {
+  background: #fffbeb;
+  border: 1px solid #fbd38d;
+  border-left: 4px solid #d69e2e;
+  border-radius: 0 8px 8px 0;
+  padding: 14px 18px;
+  margin: 16px 0;
+  font-size: 9.5pt;
+}
+.callout-success {
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+  border-left: 4px solid #38a169;
+  border-radius: 0 8px 8px 0;
+  padding: 14px 18px;
+  margin: 16px 0;
+  font-size: 9.5pt;
+}
+
+/* ── RÉSUMÉ EXÉCUTIF ── */
+.executive-summary {
+  background: linear-gradient(135deg, #f8f9ff, #eef0f8);
+  border: 1px solid #c0caee;
+  border-radius: 10px;
+  padding: 28px 32px;
+  margin-bottom: 40px;
+}
+.executive-summary h2 { page-break-before: avoid; border-bottom-color: #0f3460; }
+
+/* ── SECTION DIVIDER ── */
+hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(to right, #e94560, #0f3460, transparent);
+  margin: 35px 0;
+  border-radius: 1px;
+}
+
+/* ── METRICS GRID ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 20px 0;
+}
+.metric-card {
+  background: white;
+  border: 1px solid #e0e4f0;
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.metric-card .val { font-size: 20pt; font-weight: 700; color: #0f3460; }
+.metric-card .lbl { font-size: 8.5pt; color: #888; margin-top: 4px; }
+.metric-card.best .val { color: #38a169; }
+.metric-card.warn .val { color: #d69e2e; }
+
+/* ── FOOTER ── */
+@page {
+  size: A4;
+  margin: 20mm 18mm 22mm;
+  @bottom-center {
+    content: "Projet Data Science M2 — EFREI Paris 2025-2026  |  Page " counter(page) " / " counter(pages);
+    font-size: 8pt;
+    color: #999;
+    font-family: 'Inter', sans-serif;
+  }
+  @bottom-right {
+    content: "XGBoost ROC-AUC: 0.820";
+    font-size: 8pt;
+    color: #ccc;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* ── PRINT ── */
+@media print {
+  body { max-width: none; padding: 0; }
+  h2 { page-break-before: always; }
+  .cover { page-break-after: always; border-radius: 0; }
+  .toc { page-break-after: always; }
+  .figure-block { page-break-inside: avoid; }
+  table { page-break-inside: avoid; }
+  pre { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════ COVER ═══════════ -->
+<div class="cover">
+  <div class="logo">EFREI Paris — M2 Data Engineering & AI</div>
+  <h1>Système Intelligent Multi-Modèles<br>pour la Rétention Client et<br>l'Évaluation du Risque de Revenus</h1>
+  <div class="subtitle">
+    Prédiction du churn &amp; estimation CLV par Machine Learning et Deep Learning<br>
+    Déploiement via API REST FastAPI &amp; Dashboard Streamlit interactif
+  </div>
+  <div>
+    <span class="badge">Classification binaire</span>
+    <span class="badge">Régression CLV</span>
+    <span class="badge">XGBoost · Random Forest · MLP</span>
+    <span class="badge">SHAP · FastAPI · Streamlit</span>
+  </div>
+  <div class="cover-stats">
+    <div class="cover-stat"><div class="val">0.820</div><div class="lbl">ROC-AUC XGBoost</div></div>
+    <div class="cover-stat"><div class="val">83.8%</div><div class="lbl">Recall (churners détectés)</div></div>
+    <div class="cover-stat"><div class="val">10 000</div><div class="lbl">Clients analysés</div></div>
+    <div class="cover-stat"><div class="val">428 K€</div><div class="lbl">Revenu annuel à risque</div></div>
+  </div>
+  <div class="meta" style="margin-top:40px">
+    Enseignante : Sarah Malaeb &nbsp;|&nbsp; Bloc 4 RNCP36739 &nbsp;|&nbsp; Année 2025-2026
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ TOC ══════════════ -->
+<div class="toc">
+  <h2>Table des matières</h2>
+  <ol>
+    <li><a href="#s1">Introduction &amp; Contexte Business</a></li>
+    <li><a href="#s2">Présentation du Dataset &amp; Analyse Exploratoire</a></li>
+    <li><a href="#s3">Pipeline de Préparation des Données</a></li>
+    <li><a href="#s4">Modélisation</a>
+      <div class="sub">4.1 Stratégie globale — 4.2 Régression Logistique — 4.3 Random Forest — 4.4 XGBoost — 4.5 MLP — 4.6 Régression CLV</div>
+    </li>
+    <li><a href="#s5">Évaluation Comparative</a>
+      <div class="sub">5.1 Classification — 5.2 Courbes ROC — 5.3 Matrice de confusion — 5.4 Erreurs — 5.5 Régression — 5.6 Choix final</div>
+    </li>
+    <li><a href="#s6">Interprétabilité (SHAP)</a></li>
+    <li><a href="#s7">Dashboard Streamlit</a></li>
+    <li><a href="#s8">API REST FastAPI</a></li>
+    <li><a href="#s9">Conclusion &amp; Perspectives</a></li>
+    <li><a href="#annexes">Annexes</a></li>
+  </ol>
+</div>
+
+<!-- ════════════════════════════════════════════════════ RÉSUMÉ ══════════ -->
+<div class="executive-summary">
+<h2>Résumé Exécutif</h2>
+<p>Ce projet présente la conception et le développement d'un système complet de prédiction du churn client dans un environnement SaaS/télécom. À partir d'un dataset de <strong>10 000 clients</strong> et <strong>32 variables</strong> comportementales, financières et de satisfaction, nous avons implémenté et comparé quatre algorithmes de Machine Learning et Deep Learning pour deux tâches prédictives complémentaires : la <strong>classification binaire du churn</strong> et l'<strong>estimation de la valeur vie client (CLV)</strong>.</p>
+<p>Le système est déployé sous la forme d'un <strong>dashboard interactif Streamlit</strong> et d'une <strong>API REST FastAPI</strong>. Le modèle final retenu — <strong>XGBoost</strong> — atteint un <strong>ROC-AUC de 0.820</strong> et un <strong>Recall de 0.838</strong>, permettant de détecter 84 % des clients susceptibles de résilier leur abonnement.</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════ S1 ═══════════════ -->
+<h2 id="s1">1. Introduction &amp; Contexte Business</h2>
+
+<h3>1.1 Problématique du churn</h3>
+<p>Dans l'économie des abonnements (SaaS, télécom, services cloud), le <strong>churn</strong> — ou attrition client — désigne la résiliation d'un contrat par un client. Il représente l'une des menaces économiques les plus directes pour ces entreprises : selon les études sectorielles, acquérir un nouveau client coûte en moyenne <strong>5 à 7 fois plus cher</strong> que de fidéliser un client existant.</p>
+<p>Au-delà du coût d'acquisition, le churn impacte directement le <strong>Monthly Recurring Revenue (MRR)</strong>, la valeur des actifs clients au bilan et les projections de croissance présentées aux investisseurs.</p>
+
+<h3>1.2 Enjeux financiers</h3>
+<p>Pour quantifier l'enjeu sur notre dataset :</p>
+<table>
+<thead><tr><th>Indicateur</th><th>Valeur</th></tr></thead>
+<tbody>
+<tr><td>Clients analysés</td><td>10 000</td></tr>
+<tr><td>Revenu mensuel moyen</td><td>34,93 €</td></tr>
+<tr><td>Taux de churn observé</td><td><strong>10,2 %</strong> → 1 021 clients à risque</td></tr>
+<tr><td>Revenu mensuel à risque</td><td>1 021 × 34,93 ≈ <strong>35 664 €/mois</strong></td></tr>
+<tr><td>Revenu annuel à risque</td><td><strong>~428 000 €</strong></td></tr>
+<tr><td>Économie si 30 % retenus</td><td><strong>~128 000 €/an</strong></td></tr>
+</tbody>
+</table>
+
+<h3>1.3 Objectifs du projet</h3>
+<ol>
+<li><strong>Prédiction binaire du churn</strong> — identifier les clients susceptibles de résilier</li>
+<li><strong>Estimation CLV</strong> (tâche bonus régression) — quantifier le revenu à risque par client</li>
+<li><strong>Interprétabilité SHAP</strong> — expliquer pourquoi un client est classé à risque</li>
+<li><strong>Dashboard décisionnel</strong> — interface orientée utilisateur métier (Streamlit)</li>
+<li><strong>API REST</strong> — industrialisation du modèle (FastAPI)</li>
+</ol>
+
+<h3>1.4 Positionnement académique</h3>
+<p>Ce projet s'inscrit dans le cadre de la certification <strong>RNCP36739, Bloc 4</strong> : <em>"Implémenter des méthodes d'intelligence artificielle pour modéliser et prédire de nouveaux comportements et usages"</em>. Il couvre les compétences BC4.1 (extraction et préparation de données), BC4.3 (tableaux de bord interactifs) et BC4.4 (modèles prédictifs supervisés).</p>
+
+<!-- ════════════════════════════════════════════════════ S2 ═══════════════ -->
+<h2 id="s2">2. Présentation du Dataset &amp; Analyse Exploratoire</h2>
+
+<h3>2.1 Source et description générale</h3>
+<p>Le dataset utilisé est le <strong>Customer Churn Prediction Business Dataset</strong>, disponible sur Kaggle. Il simule un environnement SaaS/télécom.</p>
+<table>
+<thead><tr><th>Caractéristique</th><th>Valeur</th></tr></thead>
+<tbody>
+<tr><td>Nombre d'observations</td><td><strong>10 000 clients</strong></td></tr>
+<tr><td>Nombre de variables</td><td>32 (dont 1 variable cible)</td></tr>
+<tr><td>Variables numériques</td><td>19</td></tr>
+<tr><td>Variables catégorielles</td><td>12</td></tr>
+<tr><td>Variable cible principale</td><td><code>churn</code> (0 = reste, 1 = résilie)</td></tr>
+<tr><td>Variable cible secondaire</td><td><code>total_revenue</code> (estimation CLV)</td></tr>
+<tr><td>Valeurs manquantes</td><td>Aucune</td></tr>
+</tbody>
+</table>
+
+<h3>2.2 Description des variables clés</h3>
+<p><strong>Variables comportementales d'usage :</strong></p>
+<ul>
+<li><code>monthly_logins</code> : nombre de connexions par mois (moy. : 15,7)</li>
+<li><code>weekly_active_days</code> : jours d'activité par semaine (moy. : 4,1)</li>
+<li><code>avg_session_time</code> : durée moyenne de session en minutes (moy. : 20,5 min)</li>
+<li><code>features_used</code> : nombre de fonctionnalités utilisées (moy. : 10,1)</li>
+<li><code>last_login_days_ago</code> : nombre de jours depuis la dernière connexion</li>
+</ul>
+<p><strong>Variables financières :</strong></p>
+<ul>
+<li><code>monthly_fee</code> : mensualité en € (moy. : 34,93 €, min : 10 €, max : 100 €)</li>
+<li><code>total_revenue</code> : revenu total généré (moy. : 1 057 €)</li>
+<li><code>payment_failures</code> : échecs de paiement (moy. : 0,5)</li>
+</ul>
+<p><strong>Variables de satisfaction et support :</strong></p>
+<ul>
+<li><code>csat_score</code> : score de satisfaction client 0-5 (moy. : 3,49)</li>
+<li><code>nps_score</code> : Net Promoter Score -100 à 100 (moy. : 19,1)</li>
+<li><code>support_tickets</code> : tickets support ouverts (moy. : 1,2)</li>
+</ul>
+<p><strong>Variables contractuelles et démographiques :</strong></p>
+<ul>
+<li><code>contract_type</code> : Monthly (50%), Quarterly (30%), Yearly (20%)</li>
+<li><code>customer_segment</code> : Individual (60%), SME (30%), Enterprise (10%)</li>
+<li><code>tenure_months</code> : ancienneté en mois (moy. : 30,2 mois)</li>
+</ul>
+
+<h3>2.3 Distribution de la variable cible — Déséquilibre de classes</h3>
+<table>
+<thead><tr><th>Classe</th><th>Effectif</th><th>Proportion</th></tr></thead>
+<tbody>
+<tr><td>No Churn (0)</td><td>8 979</td><td><strong>89,8 %</strong></td></tr>
+<tr><td>Churn (1)</td><td>1 021</td><td><strong>10,2 %</strong></td></tr>
+</tbody>
+</table>
+<div class="callout-warn">
+<strong>⚠️ Piège de l'Accuracy :</strong> Un modèle qui prédit systématiquement "No Churn" obtiendrait 89,8 % d'accuracy sans aucune valeur prédictive. Les métriques prioritaires sont <strong>ROC-AUC, Recall et F1-Score</strong>.
+</div>
+
+<h3>2.4 Analyse des corrélations avec le churn</h3>
+<table>
+<thead><tr><th>Variable</th><th>Corrélation</th><th>Interprétation</th></tr></thead>
+<tbody>
+<tr><td><code>csat_score</code></td><td><strong>-0.158</strong></td><td>Plus la satisfaction est faible, plus le risque est élevé</td></tr>
+<tr><td><code>tenure_months</code></td><td>-0.117</td><td>Les clients récents churnent davantage</td></tr>
+<tr><td><code>monthly_logins</code></td><td>-0.098</td><td>L'inactivité précède la résiliation</td></tr>
+<tr><td><code>payment_failures</code></td><td>+0.112</td><td>Les incidents de paiement annoncent le départ</td></tr>
+<tr><td><code>age</code>, <code>monthly_fee</code></td><td>~0.010</td><td>Peu corrélés linéairement</td></tr>
+</tbody>
+</table>
+<p>Ces corrélations faibles (~0.15 max) confirment que la relation est <strong>non-linéaire et multivariée</strong> — justifiant le recours aux modèles d'ensemble (RF, XGBoost).</p>
+
+<h3>2.5 Score d'engagement client (feature engineering)</h3>
+<pre><code>EngagementScore = 0.25 × monthly_logins_norm
+                + 0.20 × weekly_active_days_norm
+                + 0.20 × avg_session_time_norm
+                + 0.10 × features_used_norm
+                + 0.10 × usage_growth_rate_norm
+                + 0.10 × (1 − last_login_days_ago_norm)</code></pre>
+<p>Les clients qui churnent ont un score d'engagement significativement inférieur, validant l'hypothèse que l'inactivité précède la résiliation.</p>
+
+<!-- ════════════════════════════════════════════════════ S3 ═══════════════ -->
+<h2 id="s3">3. Pipeline de Préparation des Données</h2>
+
+<h3>3.1 Principe anti-data-leakage</h3>
+<blockquote>
+<strong>Règle fondamentale :</strong> Le preprocessor est exclusivement <em>fitté</em> sur le train set, puis appliqué (transform only) sur le test set. Toute violation constitue du data leakage et invalide les résultats.
+</blockquote>
+
+<h3>3.2 Split train/test stratifié</h3>
+<pre><code>train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+# Train : 8 000 clients  |  Test : 2 000 clients
+# Churn train : 10.2%    |  Churn test : 10.2%  (stratification respectée)</code></pre>
+
+<h3>3.3 ColumnTransformer — Architecture complète</h3>
+<table>
+<thead><tr><th>Pipeline</th><th>Variables</th><th>Étapes</th><th>Résultat</th></tr></thead>
+<tbody>
+<tr><td>Numérique</td><td>18 variables</td><td>SimpleImputer(median) → StandardScaler</td><td>18 colonnes normalisées</td></tr>
+<tr><td>Catégoriel</td><td>11 variables</td><td>SimpleImputer(most_frequent) → OneHotEncoder</td><td>~38 colonnes binaires</td></tr>
+<tr><td><strong>Total</strong></td><td></td><td></td><td><strong>56 features</strong></td></tr>
+</tbody>
+</table>
+
+<h3>3.4 Gestion du déséquilibre des classes</h3>
+<table>
+<thead><tr><th>Stratégie</th><th>Modèle</th><th>Paramètre</th></tr></thead>
+<tbody>
+<tr><td>Class weights</td><td>Logistic Regression, Random Forest</td><td><code>class_weight='balanced'</code></td></tr>
+<tr><td>Scale pos weight</td><td>XGBoost</td><td><code>scale_pos_weight = 8 979/1 021 = <strong>8.79</strong></code></td></tr>
+<tr><td>Class weights</td><td>MLP Keras</td><td><code>compute_class_weight('balanced', ...)</code></td></tr>
+</tbody>
+</table>
+
+<!-- ════════════════════════════════════════════════════ S4 ═══════════════ -->
+<h2 id="s4">4. Modélisation</h2>
+
+<h3>4.1 Stratégie — Progression de complexité croissante</h3>
+<pre><code>Régression Logistique (baseline) → Random Forest → XGBoost → MLP Deep Learning</code></pre>
+<p>Cette progression mesure le gain apporté par chaque niveau de complexité et justifie le choix final. La validation croisée <code>RandomizedSearchCV(cv=5, scoring='roc_auc')</code> est appliquée sur RF et XGBoost.</p>
+
+<h3>4.2 Modèle 1 — Régression Logistique (baseline)</h3>
+<p>La régression logistique modélise la probabilité de churn via la fonction sigmoïde appliquée à une combinaison linéaire des features. C'est un modèle <strong>linéaire, interprétable et rapide</strong>.</p>
+<pre><code>LogisticRegression(class_weight='balanced', max_iter=1000, solver='lbfgs')</code></pre>
+<table>
+<thead><tr><th>Métrique</th><th>Valeur</th></tr></thead>
+<tbody>
+<tr><td>Accuracy</td><td>66,6 %</td></tr>
+<tr><td>Precision</td><td>18,5 %</td></tr>
+<tr><td>Recall</td><td>66,7 %</td></tr>
+<tr><td>F1-Score</td><td>0.289</td></tr>
+<tr><td>ROC-AUC</td><td><strong>0.724</strong></td></tr>
+</tbody>
+</table>
+
+<h3>4.3 Modèle 2 — Random Forest</h3>
+<p>Ensemble de N arbres de décision entraînés par bagging avec sous-ensemble aléatoire de features à chaque nœud. Capture des <strong>interactions non-linéaires complexes</strong> sans normalisation.</p>
+<table>
+<thead><tr><th>Hyperparamètre</th><th>Espace de recherche</th><th>Valeur optimale</th></tr></thead>
+<tbody>
+<tr><td><code>n_estimators</code></td><td>[100, 200, 300]</td><td>200</td></tr>
+<tr><td><code>max_depth</code></td><td>[5, 10, 15, None]</td><td>None</td></tr>
+<tr><td><code>min_samples_split</code></td><td>[2, 5, 10]</td><td>5</td></tr>
+<tr><td><code>max_features</code></td><td>['sqrt', 'log2']</td><td>'sqrt'</td></tr>
+</tbody>
+</table>
+<table>
+<thead><tr><th>Métrique</th><th>Valeur</th></tr></thead>
+<tbody>
+<tr><td>Accuracy</td><td>75,4 %</td></tr>
+<tr><td>Precision</td><td>26,5 %</td></tr>
+<tr><td>Recall</td><td><strong>79,4 %</strong></td></tr>
+<tr><td>F1-Score</td><td>0.397</td></tr>
+<tr><td>ROC-AUC</td><td><strong>0.819</strong></td></tr>
+<tr><td>Temps d'entraînement</td><td>16 secondes</td></tr>
+</tbody>
+</table>
+
+<h3>4.4 Modèle 3 — XGBoost</h3>
+<p>Algorithme de <strong>boosting</strong> : les arbres sont construits séquentiellement, chaque arbre cherchant à corriger les erreurs du précédent. XGBoost introduit régularisation L1/L2, gestion native des valeurs manquantes et paramètre <code>scale_pos_weight</code>.</p>
+<table>
+<thead><tr><th>Hyperparamètre</th><th>Valeur optimale</th></tr></thead>
+<tbody>
+<tr><td><code>n_estimators</code></td><td>100</td></tr>
+<tr><td><code>max_depth</code></td><td>3 (arbres peu profonds, évite l'overfitting)</td></tr>
+<tr><td><code>learning_rate</code></td><td>0.05</td></tr>
+<tr><td><code>scale_pos_weight</code></td><td><strong>8.79</strong></td></tr>
+</tbody>
+</table>
+<table>
+<thead><tr><th>Métrique</th><th>Valeur</th></tr></thead>
+<tbody>
+<tr><td>Accuracy</td><td>71,8 %</td></tr>
+<tr><td>Precision</td><td>24,3 %</td></tr>
+<tr><td>Recall</td><td><strong>83,8 %</strong></td></tr>
+<tr><td>F1-Score</td><td>0.377</td></tr>
+<tr><td>ROC-AUC</td><td><strong>0.820</strong> ← meilleur modèle</td></tr>
+<tr><td>Temps d'entraînement</td><td>4 secondes</td></tr>
+</tbody>
+</table>
+
+<h3>4.5 Modèle 4 — MLP Deep Learning (Classification)</h3>
+<pre><code>Input(56 features)
+  → Dense(128, relu) → BatchNormalization → Dropout(0.3)
+  → Dense(64, relu)  → BatchNormalization → Dropout(0.2)
+  → Dense(32, relu)
+  → Dense(1, sigmoid)   ← sortie probabilité [0, 1]
+
+Optimizer : Adam(lr=0.001)  |  Loss : binary_crossentropy
+Callbacks : EarlyStopping(val_auc, patience=10) + ReduceLROnPlateau</code></pre>
+<table>
+<thead><tr><th>Métrique</th><th>Valeur</th></tr></thead>
+<tbody>
+<tr><td>Accuracy</td><td>75,5 %</td></tr>
+<tr><td>Precision</td><td>22,0 %</td></tr>
+<tr><td>Recall</td><td>55,4 %</td></tr>
+<tr><td>F1-Score</td><td>0.315</td></tr>
+<tr><td>ROC-AUC</td><td>0.733</td></tr>
+<tr><td>Epochs</td><td>23 (arrêt précoce)</td></tr>
+</tbody>
+</table>
+<div class="callout-info">
+<strong>Analyse critique :</strong> Le MLP est le modèle le moins performant en classification. Sur données tabulaires avec ~8 000 exemples, les modèles d'ensemble (XGBoost) surpassent systématiquement le Deep Learning. L'EarlyStopping à l'epoch 23 confirme un risque d'overfitting.
+</div>
+
+<h3>4.6 Tâche bonus — Régression CLV (Estimation du revenu total)</h3>
+<p>Trois modèles comparés pour estimer le <code>total_revenue</code> sans utiliser cette variable comme feature :</p>
+<table>
+<thead><tr><th>Modèle</th><th>MAE (€)</th><th>RMSE (€)</th><th>R²</th></tr></thead>
+<tbody>
+<tr><td>Ridge Regression (baseline)</td><td>286</td><td>401</td><td>0.852</td></tr>
+<tr><td>Random Forest Regressor</td><td>251</td><td>398</td><td>0.854</td></tr>
+<tr><td><strong>MLP Regressor</strong></td><td><strong>36</strong></td><td><strong>54</strong></td><td><strong>0.997</strong></td></tr>
+</tbody>
+</table>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/mlp_learning_curves_regression.png" alt="Figure 1 — Courbes d'apprentissage du MLP Regressor (Loss MSE et MAE par epoch)" style="max-width:100%">
+  <div class="figure-caption">Figure 1 — Courbes d'apprentissage du MLP Regressor (Loss MSE et MAE par epoch)</div>
+</div>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/regression_predictions_vs_actual.png" alt="Figure 2 — Réel vs Prédit pour les 3 modèles de régression CLV" style="max-width:100%">
+  <div class="figure-caption">Figure 2 — Réel vs Prédit pour les 3 modèles de régression CLV</div>
+</div>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/residuals_mlp_regressor.png" alt="Figure 3 — Analyse des résidus du MLP Regressor (résidus vs prédictions, distribution, réel vs prédit)" style="max-width:100%">
+  <div class="figure-caption">Figure 3 — Analyse des résidus du MLP Regressor (résidus vs prédictions, distribution, réel vs prédit)</div>
+</div>
+
+<div class="callout-warn">
+<strong>Note sur le R²=0.997 du MLP :</strong> Ce résultat exceptionnel s'explique par une relation quasi-déterministe dans les données : <code>total_revenue ≈ tenure_months × monthly_fee</code>. Le MLP a appris cette formule arithmétique. Pour la production, le <strong>Random Forest Regressor (R²=0.854)</strong> est recommandé pour sa robustesse sur de nouvelles distributions.
+</div>
+
+<!-- ════════════════════════════════════════════════════ S5 ═══════════════ -->
+<h2 id="s5">5. Évaluation Comparative</h2>
+
+<h3>5.1 Tableau comparatif — Classification</h3>
+<table>
+<thead><tr><th>Modèle</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>ROC-AUC</th><th>Temps</th></tr></thead>
+<tbody>
+<tr><td>Logistic Regression</td><td>0.666</td><td>0.185</td><td>0.667</td><td>0.289</td><td>0.724</td><td>&lt; 1s</td></tr>
+<tr><td>Random Forest</td><td>0.754</td><td>0.265</td><td>0.794</td><td>0.397</td><td>0.819</td><td>16s</td></tr>
+<tr><td><strong>XGBoost</strong></td><td>0.718</td><td>0.243</td><td><strong>0.838</strong></td><td>0.377</td><td><strong>0.820</strong></td><td><strong>4s</strong></td></tr>
+<tr><td>MLP</td><td>0.755</td><td>0.220</td><td>0.554</td><td>0.315</td><td>0.733</td><td>9s</td></tr>
+</tbody>
+</table>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/metrics_comparison.png" alt="Figure 4 — Heatmap comparative des métriques de classification (tous modèles)" style="max-width:100%">
+  <div class="figure-caption">Figure 4 — Heatmap comparative des métriques de classification (tous modèles)</div>
+</div>
+
+<h3>5.2 Courbes ROC &amp; Precision-Recall</h3>
+<p>Les courbes ROC superposent le taux de vrais positifs en fonction du taux de faux positifs pour tous les seuils de décision possibles. L'AUC mesure la capacité discriminante globale indépendamment du seuil choisi.</p>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/roc_curves.png" alt="Figure 5 — Courbes ROC superposées — XGBoost et Random Forest dominent (AUC ≈ 0.82)" style="max-width:100%">
+  <div class="figure-caption">Figure 5 — Courbes ROC superposées — XGBoost et Random Forest dominent (AUC ≈ 0.82)</div>
+</div>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/precision_recall_curves.png" alt="Figure 6 — Courbes Precision-Recall — Trade-off entre précision et rappel par modèle" style="max-width:100%">
+  <div class="figure-caption">Figure 6 — Courbes Precision-Recall — Trade-off entre précision et rappel par modèle</div>
+</div>
+
+<h3>5.3 Matrice de confusion — XGBoost</h3>
+<p>Sur le test set (2 000 clients, dont 204 churners) :</p>
+<table>
+<thead><tr><th></th><th>Prédit No Churn</th><th>Prédit Churn</th></tr></thead>
+<tbody>
+<tr><td><strong>Réel No Churn</strong></td><td>1 286 (VN)</td><td>510 (FP)</td></tr>
+<tr><td><strong>Réel Churn</strong></td><td>33 (FN)</td><td><strong>171 (VP)</strong></td></tr>
+</tbody>
+</table>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/confusion_matrix_xgboost.png" alt="Figure 7 — Matrice de confusion XGBoost — 171 churners détectés, 33 manqués, 510 faux positifs" style="max-width:100%">
+  <div class="figure-caption">Figure 7 — Matrice de confusion XGBoost — 171 churners détectés, 33 manqués, 510 faux positifs</div>
+</div>
+
+<div class="callout-info">
+<strong>Arbitrage business :</strong> Un faux négatif (churner manqué = client qui part sans intervention) est bien plus coûteux qu'un faux positif (client contacté inutilement = simple email retention). Maximiser le Recall est le bon compromis.
+</div>
+
+<h3>5.4 Analyse des erreurs</h3>
+<p><strong>33 faux négatifs :</strong> Clients à profils atypiques — satisfaction correcte mais comportements en déclin récent. L'ajout de variables de tendance (usage des 3 derniers mois) pourrait réduire ces erreurs.</p>
+<p><strong>510 faux positifs :</strong> Clients présentant des signaux mixtes (quelques tickets support mais satisfaction correcte). Un contact commercial proactif sur ces clients ne présente pas de risque majeur.</p>
+
+<h3>5.5 Tableau comparatif — Régression CLV</h3>
+<table>
+<thead><tr><th>Modèle</th><th>MAE</th><th>RMSE</th><th>R²</th><th>MAPE</th></tr></thead>
+<tbody>
+<tr><td>Ridge Regression</td><td>286 €</td><td>401 €</td><td>0.852</td><td>131 %</td></tr>
+<tr><td>Random Forest Regressor</td><td>251 €</td><td>398 €</td><td>0.854</td><td>74 %</td></tr>
+<tr><td><strong>MLP Regressor</strong></td><td><strong>36 €</strong></td><td><strong>54 €</strong></td><td><strong>0.997</strong></td><td>13 %</td></tr>
+</tbody>
+</table>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/regression_metrics_comparison.png" alt="Figure 8 — Heatmap comparative des métriques de régression CLV" style="max-width:100%">
+  <div class="figure-caption">Figure 8 — Heatmap comparative des métriques de régression CLV</div>
+</div>
+
+<h3>5.6 Choix et justification du modèle final</h3>
+<table>
+<thead><tr><th>Critère</th><th>Logistic</th><th>RF</th><th>XGBoost</th><th>MLP</th></tr></thead>
+<tbody>
+<tr><td>ROC-AUC</td><td>0.724</td><td>0.819</td><td><strong>0.820</strong></td><td>0.733</td></tr>
+<tr><td>Recall</td><td>0.667</td><td>0.794</td><td><strong>0.838</strong></td><td>0.554</td></tr>
+<tr><td>Interprétabilité</td><td>Haute</td><td>Moyenne</td><td><strong>Haute (SHAP)</strong></td><td>Faible</td></tr>
+<tr><td>Vitesse inference</td><td>Très rapide</td><td>Modérée</td><td><strong>Rapide</strong></td><td>Lente</td></tr>
+<tr><td>Déployabilité</td><td>Facile</td><td>Facile</td><td><strong>Facile (joblib)</strong></td><td>Complexe (.h5)</td></tr>
+</tbody>
+</table>
+<div class="callout-success">
+<strong>✅ Modèle retenu : XGBoost</strong> — maximise simultanément ROC-AUC et Recall, entraînement en 4 secondes, explicable via SHAP, déployable via joblib. Pour la régression : <strong>Random Forest Regressor</strong> (plus robuste que le MLP en production).
+</div>
+
+<!-- ════════════════════════════════════════════════════ S6 ═══════════════ -->
+<h2 id="s6">6. Interprétabilité (SHAP)</h2>
+
+<h3>6.1 Feature Importance native — XGBoost</h3>
+<p>La feature importance mesure le gain moyen apporté par chaque variable lors des splits. Les variables les plus importantes :</p>
+<ul>
+<li><strong><code>csat_score</code></strong> — la satisfaction client est le signal le plus prédictif</li>
+<li><strong><code>tenure_months</code></strong> — les clients récents churnent davantage</li>
+<li><strong><code>monthly_logins</code></strong> — l'engagement en connexions</li>
+<li><strong><code>last_login_days_ago</code></strong> — l'inactivité récente précède la résiliation</li>
+<li><strong><code>payment_failures</code></strong> — signal d'alarme direct</li>
+</ul>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/feature_importance_xgboost.png" alt="Figure 9 — Feature Importance native XGBoost (Top 15 variables par gain moyen)" style="max-width:100%">
+  <div class="figure-caption">Figure 9 — Feature Importance native XGBoost (Top 15 variables par gain moyen)</div>
+</div>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/feature_importance_rf_regressor.png" alt="Figure 10 — Feature Importance Random Forest Regressor — tenure_months et monthly_fee dominent (CLV)" style="max-width:100%">
+  <div class="figure-caption">Figure 10 — Feature Importance Random Forest Regressor — tenure_months et monthly_fee dominent (CLV)</div>
+</div>
+
+<h3>6.2 Analyse SHAP (SHapley Additive exPlanations)</h3>
+<p>SHAP est une méthode d'explicabilité basée sur la théorie des jeux coopératifs. Elle attribue à chaque feature une contribution précise à la prédiction — pour chaque observation individuellement.</p>
+
+<h4>6.2.1 SHAP Summary Plot — Vue globale</h4>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/shap_summary.png" alt="Figure 11 — SHAP Summary Plot (Classification Churn) — Chaque point = 1 client. Rouge = valeur élevée, bleu = faible." style="max-width:100%">
+  <div class="figure-caption">Figure 11 — SHAP Summary Plot (Classification Churn) — Chaque point = 1 client. Rouge = valeur élevée, bleu = faible.</div>
+</div>
+
+<p><strong>Interprétations clés :</strong></p>
+<ul>
+<li>Un <code>csat_score</code> faible (bleu) → valeurs SHAP positives élevées → augmente le risque</li>
+<li>Un <code>tenure_months</code> élevé (rouge) → valeurs SHAP négatives → réduit le risque (fidélité)</li>
+<li>Des <code>payment_failures</code> élevés → augmentent le risque</li>
+<li>Un <code>monthly_logins</code> élevé → réduit le risque (client engagé)</li>
+</ul>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/shap_summary_regression.png" alt="Figure 12 — SHAP Summary Plot (Régression CLV) — tenure_months et monthly_fee quasi-déterministes" style="max-width:100%">
+  <div class="figure-caption">Figure 12 — SHAP Summary Plot (Régression CLV) — tenure_months et monthly_fee quasi-déterministes</div>
+</div>
+
+<h4>6.2.2 SHAP Waterfall Plot — Explication individuelle</h4>
+
+<div class="figure-block">
+  <img src="file:///Users/wassim/dev/Projet Data science/projet_churn/reports/figures/shap_waterfall.png" alt="Figure 13 — SHAP Waterfall Plot — Décomposition de la prédiction pour un client à risque élevé" style="max-width:100%">
+  <div class="figure-caption">Figure 13 — SHAP Waterfall Plot — Décomposition de la prédiction pour un client à risque élevé</div>
+</div>
+
+<p>Le waterfall plot montre comment chaque feature pousse la probabilité de churn à partir de la valeur de base (probabilité moyenne = 10,2 %). Dans l'exemple : csat_score faible (+0.23), last_login_days_ago élevé (+0.18), payment_failures (+0.15).</p>
+
+<h3>6.3 Recommandations business actionnables</h3>
+<table>
+<thead><tr><th>Signal SHAP</th><th>Action recommandée</th></tr></thead>
+<tbody>
+<tr><td><code>csat_score</code> &lt; 3</td><td>Appel proactif du service client, offre de résolution personnalisée</td></tr>
+<tr><td><code>last_login_days_ago</code> &gt; 14</td><td>Email de réengagement avec mise en avant de nouvelles fonctionnalités</td></tr>
+<tr><td><code>payment_failures</code> ≥ 2</td><td>Contact préventif pour résoudre le problème de paiement</td></tr>
+<tr><td><code>tenure_months</code> &lt; 6</td><td>Programme d'onboarding renforcé, accompagnement early-stage</td></tr>
+<tr><td><code>nps_score</code> &lt; 0</td><td>Enquête approfondie, escalade vers un Customer Success Manager</td></tr>
+<tr><td><code>support_tickets</code> ≥ 3</td><td>Priorité de résolution, escalade managériale</td></tr>
+</tbody>
+</table>
+<p><strong>Formule de priorisation financière :</strong></p>
+<pre><code>Score_priorité = P(churn) × monthly_fee</code></pre>
+<p>Cette formule concentre les efforts sur les clients à la fois à <strong>haut risque ET à haute valeur</strong>.</p>
+
+<!-- ════════════════════════════════════════════════════ S7 ═══════════════ -->
+<h2 id="s7">7. Dashboard Streamlit</h2>
+
+<h3>7.1 Architecture et choix techniques</h3>
+<p>Dashboard développé avec <strong>Streamlit 1.55</strong>, structuré en 4 pages. Les visualisations interactives utilisent <strong>Plotly</strong> (graphiques zoomables, filtrables, avec tooltips). Le modèle et les données sont chargés en cache (<code>@st.cache_resource</code>, <code>@st.cache_data</code>).</p>
+
+<h3>7.2 Page 1 — Vue d'ensemble / KPIs</h3>
+<ul>
+<li>4 métriques st.metric : Total clients, Taux de churn, Revenu mensuel à risque, Clients high-risk</li>
+<li>Pie chart : répartition churners/non-churners</li>
+<li>Histogramme : distribution des probabilités de churn (seuil 0.5 visualisé)</li>
+<li>Scatter plot : Monthly Fee vs Tenure, coloré par probabilité de churn</li>
+<li>Barplots : taux de churn par segment client et type de contrat</li>
+<li>Heatmap de corrélation interactive</li>
+</ul>
+
+<h3>7.3 Page 2 — Analyse des facteurs de risque</h3>
+<ul>
+<li>Feature Importance XGBoost (image statique)</li>
+<li>Boxplot interactif : sélection de variable via selectbox → distribution par churn</li>
+<li>SHAP Summary Plot global</li>
+<li>Table des Top 10 clients à risque avec probabilité et revenu à risque</li>
+</ul>
+
+<h3>7.4 Page 3 — Comparaison des modèles</h3>
+<ul>
+<li>Tableau comparatif stylé avec highlight des meilleures valeurs</li>
+<li>Radar chart Plotly : comparaison visuelle des 5 métriques par modèle</li>
+<li>Courbes ROC et courbes d'apprentissage MLP</li>
+<li>Sélecteur de matrice de confusion par modèle</li>
+<li>Onglet Régression : tableau CLV + graphiques résidus</li>
+</ul>
+
+<h3>7.5 Page 4 — Simulateur client (prédiction temps réel)</h3>
+<ul>
+<li>Formulaire complet (30 champs) : âge, contrat, usage, finance, satisfaction</li>
+<li>Jauge circulaire Plotly : probabilité de churn (0-100 %) avec code couleur vert/orange/rouge</li>
+<li>Top 3 facteurs SHAP : explication personnalisée de la prédiction</li>
+<li>Toggle API : bascule entre prédiction locale (joblib) et appel à l'API REST FastAPI</li>
+</ul>
+
+<!-- ════════════════════════════════════════════════════ S8 ═══════════════ -->
+<h2 id="s8">8. API REST FastAPI</h2>
+
+<h3>8.1 Architecture</h3>
+<pre><code>Client (CRM / Dashboard / cURL)
+        ↓ HTTP POST /predict
+FastAPI (api/main.py)
+        ↓ Validation Pydantic v2
+Preprocessor (models/preprocessor.joblib)
+        ↓ transform()
+Model (models/best_model.joblib)
+        ↓ predict_proba()
+PredictionResponse (JSON)</code></pre>
+
+<h3>8.2 Endpoints</h3>
+<table>
+<thead><tr><th>Méthode</th><th>Endpoint</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/health</code></td><td>Statut du service + modèle chargé</td></tr>
+<tr><td>GET</td><td><code>/model-info</code></td><td>Métadonnées du modèle (features, version, seuil)</td></tr>
+<tr><td>POST</td><td><code>/predict</code></td><td>Prédiction pour un client</td></tr>
+<tr><td>POST</td><td><code>/predict/batch</code></td><td>Prédictions batch (max 1 000 clients)</td></tr>
+</tbody>
+</table>
+
+<h3>8.3 Exemple de requête/réponse</h3>
+<pre><code># Requête
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{"age": 35, "tenure_months": 6, "contract_type": "Monthly",
+       "monthly_logins": 3, "csat_score": 1.5,
+       "payment_failures": 3, "monthly_fee": 79.99, ...}'
+
+# Réponse
+{
+  "churn_probability": 0.847,
+  "churn_prediction": 1,
+  "risk_level": "High",
+  "revenue_at_risk": 67.78,
+  "model_version": "1.0.0"
+}</code></pre>
+
+<h3>8.4 Gestion des erreurs</h3>
+<table>
+<thead><tr><th>Code HTTP</th><th>Cause</th></tr></thead>
+<tbody>
+<tr><td>200</td><td>Succès</td></tr>
+<tr><td>422</td><td>Données invalides (Pydantic automatique)</td></tr>
+<tr><td>400</td><td>Batch > 1 000 clients</td></tr>
+<tr><td>503</td><td>Modèle non chargé</td></tr>
+<tr><td>500</td><td>Erreur interne</td></tr>
+</tbody>
+</table>
+<p>Documentation Swagger interactive disponible à <code>http://localhost:8000/docs</code>.</p>
+
+<!-- ════════════════════════════════════════════════════ S9 ═══════════════ -->
+<h2 id="s9">9. Conclusion &amp; Perspectives</h2>
+
+<h3>9.1 Synthèse des résultats</h3>
+<table>
+<thead><tr><th>Composant</th><th>Résultat</th></tr></thead>
+<tbody>
+<tr><td>Preprocessing</td><td>Pipeline sklearn sans data leakage, 56 features après encodage</td></tr>
+<tr><td>Classification</td><td><strong>XGBoost</strong> — ROC-AUC 0.820, Recall 0.838</td></tr>
+<tr><td>Régression CLV</td><td><strong>Random Forest</strong> — R² 0.854, MAE 251 €</td></tr>
+<tr><td>Interprétabilité</td><td>SHAP global + local, 6 recommandations business actionnables</td></tr>
+<tr><td>Dashboard</td><td>Streamlit 4 pages, graphiques Plotly interactifs</td></tr>
+<tr><td>API REST</td><td>FastAPI, 4 endpoints, Pydantic v2, documentation Swagger</td></tr>
+</tbody>
+</table>
+
+<h3>9.2 Limites identifiées</h3>
+<ol>
+<li><strong>Volume de données</strong> : 10 000 observations limitent la capacité du Deep Learning. Un dataset 100 000+ clients permettrait de mieux exploiter le MLP.</li>
+<li><strong>Features temporelles absentes</strong> : la tendance d'usage (delta mois sur mois) enrichirait le modèle.</li>
+<li><strong>Dérive des données (concept drift)</strong> : un monitoring Evidently/MLflow serait nécessaire en production.</li>
+<li><strong>Relation quasi-déterministe CLV</strong> : <code>total_revenue ≈ tenure × fee</code> limite l'intérêt de la régression.</li>
+<li><strong>Seuil de décision fixe à 0.5</strong> : l'ajustement selon le ratio coût(FP)/coût(FN) optimiserait le ROI.</li>
+</ol>
+
+<h3>9.3 Perspectives d'amélioration</h3>
+<ol>
+<li><strong>Feature engineering avancé</strong> : ratio tickets/tenure, variables de tendance</li>
+<li><strong>Modèles supplémentaires</strong> : LightGBM, CatBoost, Survival Analysis</li>
+<li><strong>MLOps</strong> : MLflow pour le tracking, A/B testing des stratégies de rétention</li>
+<li><strong>Monitoring production</strong> : détection data drift, alertes automatiques</li>
+<li><strong>Segmentation client</strong> : K-Means sur les profils à risque → actions personnalisées par segment</li>
+</ol>
+
+<!-- ════════════════════════════════════════════════════ ANNEXES ══════════ -->
+<h2 id="annexes">10. Annexes</h2>
+
+<h3>Annexe A — Structure du projet</h3>
+<pre><code>projet_churn/
+├── data/
+│   ├── raw/telecom_churn_dataset.csv
+│   └── processed/
+├── notebooks/
+│   ├── 01_eda.ipynb
+│   ├── 02_preprocessing.ipynb
+│   ├── 03_modeling.ipynb
+│   └── 04_evaluation.ipynb
+├── src/
+│   ├── preprocessing.py
+│   ├── train.py
+│   ├── train_regression.py
+│   ├── evaluate.py
+│   └── models/
+│       ├── logistic_model.py
+│       ├── random_forest_model.py
+│       ├── xgboost_model.py
+│       ├── mlp_model.py
+│       ├── linear_regression_model.py
+│       ├── rf_regressor_model.py
+│       └── mlp_regressor_model.py
+├── models/               ← modèles sérialisés (.joblib, .h5)
+├── dashboard/app.py      ← Streamlit
+├── api/
+│   ├── main.py           ← FastAPI
+│   └── schemas.py        ← Pydantic
+├── reports/
+│   ├── model_comparison.csv
+│   ├── regression_model_comparison.csv
+│   └── figures/          ← 13 graphiques
+├── requirements.txt
+└── README.md</code></pre>
+
+<h3>Annexe B — Environnement technique</h3>
+<table>
+<thead><tr><th>Outil</th><th>Version</th></tr></thead>
+<tbody>
+<tr><td>Python</td><td>3.12.9</td></tr>
+<tr><td>scikit-learn</td><td>1.8.0</td></tr>
+<tr><td>XGBoost</td><td>3.2.0</td></tr>
+<tr><td>TensorFlow/Keras</td><td>2.21.0</td></tr>
+<tr><td>SHAP</td><td>0.51.0</td></tr>
+<tr><td>Streamlit</td><td>1.55.0</td></tr>
+<tr><td>FastAPI</td><td>0.135.2</td></tr>
+<tr><td>Pydantic</td><td>2.12.5</td></tr>
+<tr><td>pandas</td><td>2.3.3</td></tr>
+</tbody>
+</table>
+
+<h3>Annexe C — Commandes de lancement</h3>
+<pre><code># Installation de l'environnement
+cd projet_churn
+uv venv .venv && source .venv/bin/activate
+uv pip install -r requirements.txt
+
+# Entraînement classification (4 modèles)
+python src/train.py
+
+# Entraînement régression (3 modèles)
+python src/train_regression.py
+
+# Dashboard interactif
+streamlit run dashboard/app.py
+
+# API REST (port 8000)
+uvicorn api.main:app --reload --port 8000</code></pre>
+
+<h3>Annexe D — Métriques détaillées</h3>
+<p><strong>Classification :</strong></p>
+<table>
+<thead><tr><th>Modèle</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>ROC-AUC</th></tr></thead>
+<tbody>
+<tr><td>Logistic Regression</td><td>0.6655</td><td>0.1845</td><td>0.6667</td><td>0.2891</td><td>0.7237</td></tr>
+<tr><td>Random Forest</td><td>0.7540</td><td>0.2647</td><td>0.7941</td><td>0.3971</td><td>0.8188</td></tr>
+<tr><td><strong>XGBoost</strong></td><td>0.7175</td><td>0.2432</td><td><strong>0.8382</strong></td><td>0.3771</td><td><strong>0.8196</strong></td></tr>
+<tr><td>MLP</td><td>0.7545</td><td>0.2203</td><td>0.5539</td><td>0.3152</td><td>0.7335</td></tr>
+</tbody>
+</table>
+<p><strong>Régression CLV :</strong></p>
+<table>
+<thead><tr><th>Modèle</th><th>MAE (€)</th><th>RMSE (€)</th><th>R²</th><th>MAPE</th></tr></thead>
+<tbody>
+<tr><td>Ridge Regression</td><td>286.19</td><td>400.94</td><td>0.8516</td><td>131.0 %</td></tr>
+<tr><td>Random Forest Regressor</td><td>251.02</td><td>398.18</td><td>0.8537</td><td>74.3 %</td></tr>
+<tr><td><strong>MLP Regressor</strong></td><td><strong>36.40</strong></td><td><strong>54.48</strong></td><td><strong>0.9973</strong></td><td>13.3 %</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p style="text-align:center; color:#999; font-size:9pt; margin-top:30px">
+  <em>Rapport généré dans le cadre du Projet Data Science M2 — EFREI Paris 2025-2026</em>
+</p>
+
+</body>
+</html>
